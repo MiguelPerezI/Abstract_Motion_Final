@@ -1,0 +1,67 @@
+#!/bin/bash 
+## Las sentecnias que inician con: "#PBS" 
+## son comandos para el sistema de colas PBS.
+#
+## Es necesario editar este script, si requiere mas de un nodo cambiando "nodes=1" por los requeridos,
+## P.E. si se requieren 128 cores entonecs nodes=4 ... etc.  
+## Se debe dejar ppn=32 que son los cores existentes por cada nodo AMD, 
+## Editar los Nombres de los archivos de salida
+## Editar el Nombre de la tarea y <ejecutable>.
+## La cantidad de memoria requerida no mayor a 62GB.
+## Mantener el archivo de la lista de nodos y entorno por si existen problemas
+## en la ejecucion de un job.
+## Todos los comandos para PBS tiene unicamente un "#" si tiene mas de uno, esta comentada la linea.
+
+
+## Para correr una tarea con el PBS hay que ejecutar
+## qsub <nombre del script>
+
+
+#PBS -q CAMD1024
+
+# NUMERO DE NODOS Y PROCESADORES USADOS POR EL JOB, PARA JOBS SERIALES SE OCUPARA 1 NODO Y 4 PROCESADOR
+#PBS -l nodes=3:ppn=32
+
+# TIEMPO QUE EL JOB PUEDE ESTAR CORRIENDO EN ESE NODO
+##PBS -l walltime=020:30:00
+
+# AQUI DEBERA ESCRIBIR EL NOMBRE DEL JOB
+#PBS -N absMotion
+
+
+
+
+ #CREANDO EL DIRECTORIO DE TRABAJO
+source  /opt/rh/devtoolset-6/enable 
+source /opt/intel/impi/4.0.3/bin64/mpivars.sh intel64
+source /opt/intel/bin/compilervars.sh intel64
+
+
+
+
+echo user   :  $USER;
+echo jobname:  $PBS_JOBNAME;
+echo jobid  :  $PBS_JOBID;
+
+
+
+cd $PBS_O_WORKDIR
+
+mkdir $PBS_O_WORKDIR/admon;
+cat $PBS_NODEFILE | sort | uniq > $PBS_O_WORKDIR/admon/lista-nodos-$PBS_JOBID.txt
+env      > $PBS_O_WORKDIR/admon/entorno-$PBS_JOBNAME.txt;
+
+NP=$(($PBS_NUM_NODES * $PBS_NUM_PPN))
+
+rm -f ./$PBS_JOBNAME
+
+mpicxx  main.cpp SimplexAbstract.cpp SimplexAlpha.cpp LocalSearch.cpp Matrix.cpp  Covering.hpp  RCC.hpp -DMPICH_IGNORE_CXX_SEEK  -std=c++0x -O3 -mavx  -pthread -o absMotion-intel-ignore-crecxxseek
+
+date;
+
+time mpirun -np $NP ./absMotion-intel-ignore-crecxxseek > absMotion-intel-ignore-crecxxseek.out
+
+date;
+
+
+exit 0;

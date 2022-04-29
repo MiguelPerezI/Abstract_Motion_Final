@@ -1,0 +1,2 @@
+mpic++ main.cpp SimplexAbstract.cpp SimplexAlpha.cpp LocalSearch.cpp Matrix.cpp Covering.hpp RCC.hpp -o absMtion666 -pthread
+time mpirun -np 4 ./absMtion666
