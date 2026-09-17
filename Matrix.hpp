@@ -20,9 +20,11 @@ class Matrix {
 
 			this->m = m;
 			this->n = n;
-			this->A = (double **) malloc (m * sizeof(double*));
+			//calloc so the adjacency matrix starts at zero: uninitialized
+			//memory would otherwise act as phantom edges in Dijkstra
+			this->A = (double **) calloc (m, sizeof(double*));
 			for (int i = 0; i < m; i++)
-				this->A[i] = (double *) malloc (n * sizeof(double));
+				this->A[i] = (double *) calloc (n, sizeof(double));
 		}
 
 		double * operator[] (int k) { 

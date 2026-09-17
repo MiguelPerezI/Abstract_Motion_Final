@@ -21,6 +21,38 @@ int numOfMaxSimplex(int p, int q) {
 	return factorial(p + q) / (factorial(p) * factorial(q));
 }
 
+//Enumerates every interleaving of p steps along s0 and q steps along s1
+//as a row of 0/1 flags (0 = advance in s0, 1 = advance in s1). This
+//replaces the hardcoded 6x4 matrix, which was only valid for
+//dimension-2 x dimension-2 products (the S^2 case) and broke for the
+//circle (1 x 1) and any other pair of dimensions.
+void SimplexProd::buildPaths(int p, int q) {
+
+	int cols = p + q;
+
+	if (this->path.m > 0) {
+		for (int i = 0; i < this->path.m; i++)
+			free(this->path.A[i]);
+		free(this->path.A);
+		this->path.m = 0;
+		this->path.n = 0;
+	}
+
+	this->path.initMatrixInt(this->maxSimplex, cols);
+
+	int row = 0;
+	for (int mask = 0; row < this->maxSimplex && mask < (1 << cols); mask++) {
+		int bits = 0;
+		for (int b = 0; b < cols; b++)
+			if ((mask >> b) & 1) bits += 1;
+		if (bits != q) continue;
+
+		for (int b = 0; b < cols; b++)
+			this->path.updateA(row, b, (mask >> b) & 1);
+		row += 1;
+	}
+}
+
 void SimplexAlpha::initSimplexAlpha(int n) {
 
 	this->numVertex = n;
@@ -346,8 +378,34 @@ void Complex::initComplex(int n, int num) {
 	this->K.initMatrixSimplex(1, n);
 }
 
+//Complex::n is used everywhere as the number of VERTICES of K
+//(zero skeleton of KxK, projections, Dijkstra graph, LocalSearch's
+//vertex lists), but initComplex filled it with the number of facets.
+//Those coincide for dDelta^2 and dDelta^3 by pure luck. This derives
+//the vertex count from the facets, so any complex works.
+void Complex::setN_Vertices() {
+
+	int maxV = 0;
+	for (int i = 0; i < this->numSimplex; i++)
+		for (int j = 0; j < this->K.A[0][i].numVertex; j++)
+			if (this->K.A[0][i].A.getA(0, j) + 1 > maxV)
+				maxV = this->K.A[0][i].A.getA(0, j) + 1;
+
+	this->n = maxV;
+}
+
 void Complex::initAdjMat() {
-	graph.initMatrix(n, n);
+
+	this->setN_Vertices();
+	graph.initMatrix(this->n, this->n);
+
+	//Build the 1-skeleton of K directly from the facets: every pair of
+	//vertices inside a facet is joined by an edge of weight 1.
+	for (int i = 0; i < this->numSimplex; i++)
+		for (int j = 0; j < this->K.A[0][i].numVertex; j++)
+			for (int k = j + 1; k < this->K.A[0][i].numVertex; k++)
+				graph.addWeight(this->K.A[0][i].A.getA(0, j),
+						this->K.A[0][i].A.getA(0, k), 1.0);
 }
 
 void Complex::escComplex() {
@@ -374,17 +432,7 @@ void SimplexProd::multiplySimplices(Simplex s0, Simplex s1) {
 
 	this->maxSimplex = numOfMaxSimplex(s0.dimension, s1.dimension);
 	this->maxOld = numOfMaxSimplex(s0.dimension, s1.dimension);
-	this->path.initMatrixInt(this->maxSimplex, s0.dimension + s1.dimension);
-
-	this->path.updateA(0, 0, 0); this->path.updateA(0, 1, 0); this->path.updateA(0, 2, 1); this->path.updateA(0, 3, 1);
-	this->path.updateA(1, 0, 0); this->path.updateA(1, 1, 1); this->path.updateA(1, 2, 0); this->path.updateA(1, 3, 1);
-	this->path.updateA(2, 0, 0); this->path.updateA(2, 1, 1); this->path.updateA(2, 2, 1); this->path.updateA(2, 3, 0);
-	this->path.updateA(3, 0, 1); this->path.updateA(3, 1, 0); this->path.updateA(3, 2, 0); this->path.updateA(3, 3, 1);
-	this->path.updateA(4, 0, 1); this->path.updateA(4, 1, 0); this->path.updateA(4, 2, 1); this->path.updateA(4, 3, 0);
-	this->path.updateA(5, 0, 1); this->path.updateA(5, 1, 1); this->path.updateA(5, 2, 0); this->path.updateA(5, 3, 0);
-	
-	//this->path.updateA(0, 0, 0); this->path.updateA(0, 1, 1);
-	//this->path.updateA(1, 0, 1); this->path.updateA(1, 1, 0);
+	this->buildPaths(s0.dimension, s1.dimension);
 
 	this->maximalSimplices.initMatrixSimplexAlpha(1, this->maxSimplex);
 	int simplexNum = 1;
@@ -414,17 +462,9 @@ void SimplexProd::multiplySimplices(Simplex s0, Simplex s1) {
 void SimplexProd::multiplySimplicesUpdate(Simplex s0, Simplex s1) {
 
 	this->maxSimplex = numOfMaxSimplex(s0.dimension, s1.dimension);
-	
-	this->path.updateA(0, 0, 0); this->path.updateA(0, 1, 0); this->path.updateA(0, 2, 1); this->path.updateA(0, 3, 1);
-	this->path.updateA(1, 0, 0); this->path.updateA(1, 1, 1); this->path.updateA(1, 2, 0); this->path.updateA(1, 3, 1);
-	this->path.updateA(2, 0, 0); this->path.updateA(2, 1, 1); this->path.updateA(2, 2, 1); this->path.updateA(2, 3, 0);
-	this->path.updateA(3, 0, 1); this->path.updateA(3, 1, 0); this->path.updateA(3, 2, 0); this->path.updateA(3, 3, 1);
-	this->path.updateA(4, 0, 1); this->path.updateA(4, 1, 0); this->path.updateA(4, 2, 1); this->path.updateA(4, 3, 0);
-	this->path.updateA(5, 0, 1); this->path.updateA(5, 1, 1); this->path.updateA(5, 2, 0); this->path.updateA(5, 3, 0);
-	
-	//this->path.updateA(0, 0, 0); this->path.updateA(0, 1, 1);
-	//this->path.updateA(1, 0, 1); this->path.updateA(1, 1, 0);
-	
+
+	this->buildPaths(s0.dimension, s1.dimension);
+
 	this->maximalSimplices.updateMatrixSimplexAlphaSize(1, this->maxSimplex);
 	int simplexNum = 1;
 	int pathI;
@@ -459,6 +499,10 @@ void SimplexProd::multiplySimplicesUpdate(Simplex s0, Simplex s1) {
 }
 
 void ComplexProduct::initComplexProduct(Complex K) {
+
+	//Make sure K.n holds the vertex count before using it as the size
+	//of the zero skeleton / projections.
+	K.setN_Vertices();
 
 	this->zero_skeleton.initMatrixVectorInt(K.n, K.n);
 	for (int i = 0; i < K.n; i++)
@@ -794,26 +838,28 @@ int SimplicialMap::contiguous(SimplicialMap b, SubComplexJ J, Complex K) {
 		int contiguous = 0;
 		while (i0 < K.numSimplex) {
 
-					if (evalMap.size() == K.getSimplex(i0).numVertex) {
-						int check = 0;
-		
-		
-								list <int> :: iterator it;
-								it = evalMap.begin();
-		
-								for (int l = 0; l < evalMap.size(); l++) {
-				
-									if (*it == K.getSimplex(i0).A.getA(0, l)) check += 0;
-									else check += 1;
-				
-									advance(it, 1);
-								}
-		
-								if (check == 0) {
-									contiguous = 111;
-									//printf("-->Contiguous face\n");
-									break;
-								}
+					//Definition 2.3 (arXiv:2008.13290): phi(sigma) U phi'(sigma)
+					//must be a simplex of K, i.e. a subset of some facet of K --
+					//not necessarily a maximal simplex itself.
+					if (evalMap.size() <= K.getSimplex(i0).numVertex) {
+						int check = 1;
+
+						list <int> :: iterator it;
+						it = evalMap.begin();
+
+						for (int l = 0; l < evalMap.size(); l++) {
+							int found = 0;
+							for (int m = 0; m < K.getSimplex(i0).numVertex; m++)
+								if (*it == K.getSimplex(i0).A.getA(0, m)) { found = 1; break; }
+							if (found == 0) { check = 0; break; }
+							advance(it, 1);
+						}
+
+						if (check == 1) {
+							contiguous = 111;
+							//printf("-->Contiguous face\n");
+							break;
+						}
 					}
 
 			i0 += 1;

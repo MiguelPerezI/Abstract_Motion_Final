@@ -1,0 +1,38 @@
+K: 4 facets, 4 vertices; 16 product units, 96 maximal simplices
+
+=============== LEVEL: PRODUCT-PAIRS (16 nodes) ===============
+[singles] minimal chain length pi1 -> pi2:
+  node  0: 6
+  node  1: 8
+  node  2: 8
+  node  3: 8
+  node  4: 8
+  node  5: 6
+  node  6: 8
+  node  7: 8
+  node  8: 8
+  node  9: 8
+  node 10: 6
+  node 11: 8
+  node 12: 8
+  node 13: 8
+  node 14: 8
+  node 15: 6
+  --> 0/16 single nodes admit NO chain (0 capped)
+[pairs] pairwise compatibility...
+  --> 0 incompatible pairs of 120
+  --> pairwise max clique = 16
+  --> pairwise clique cover with 1 parts: YES
+
+[exact cover] minimum number of JOINTLY-FEASIBLE domains:
+
+=============== LEVEL: MAXIMAL-SIMPLICES (96 nodes) ===============
+[singles] minimal chain length pi1 -> pi2:
+  --> 0/96 single nodes admit NO chain (0 capped)
+[pairs] pairwise compatibility...
+  --> 0 incompatible pairs of 4560
+  --> pairwise max clique = 96
+  --> pairwise clique cover with 1 parts: YES
+
+[exact cover] minimum number of JOINTLY-FEASIBLE domains:
+  cover with 1 parts: no (1.9 s, 19 search nodes)

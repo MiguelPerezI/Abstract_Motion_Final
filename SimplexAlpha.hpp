@@ -168,6 +168,7 @@ class Complex {
 
 		
 		void initComplex(int, int);
+		void setN_Vertices();
 		void initAdjMat();
 		void initAdjMatA(int, int, int);
 		int getAdjMatA(int, int);
@@ -194,6 +195,7 @@ class SimplexProd {
 
 		void multiplySimplices(Simplex, Simplex);
 		void multiplySimplicesUpdate(Simplex s0, Simplex s1);
+		void buildPaths(int p, int q);
 		list <SimplexAlpha> getMaximalSimplices();
 		void escListSimplexAlpha(list <SimplexAlpha> facets);
 };
